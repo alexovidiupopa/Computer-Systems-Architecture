@@ -1,0 +1,61 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ;10)Se dau doua siruri de caractere S1 si S2. Sa se construiasca sirul D prin concatenarea elementelor sirului S2 in ordine inversa cu elementele de pe pozitiile pare din sirul S1. 
+    12                                  ; S1: '+', '2', '2', 'b', '8', '6', 'X','8'
+    13                                  ; S2: 'a', '4', '5'
+    14                                  ; D: '5', '4', 'a', '2','b', '6', '8'
+    15                                  ; our data is declared here (the variables needed by our program)
+    16                                  segment data use32 class=data
+    17                                      ; ...
+    18 00000000 2B3232623836583830          s1 db '+','2','2','b','8','6','X','8','0'
+    19                                      l1 equ $-s1
+    20 00000009 61343562                    s2 db 'a','4','5','b'
+    21                                      l2 equ $-s2
+    22 0000000D 00<rept>                    d times (l1/2)+l2 db 0 ; we allocate the necessary memory for d, which is half the length of the first string + the whole length of the other string
+    23 00000015 00                          aux db 0 
+    24                                  ; our code starts here
+    25                                  segment code use32 class=code
+    26                                      start:
+    27 00000000 B904000000                      mov ecx,l2    ; initialize ecx with the length of the second string
+    28                                  
+    29 00000005 BE03000000                      mov esi,l2-1   ; initialize the index of the second string from the end 
+    30                                        
+    31 0000000A BF00000000                      mov edi,0 ; initialize the starting point of the d string with 0
+    32                                          
+    33 0000000F E310                            jecxz end_loop_second_string  ; jump if ecx (l2) is 0
+    34                                          
+    35                                          second_string:
+    36 00000011 8A86[09000000]                      mov al,[s2+esi]     ; al = s2[esi]
+    37 00000017 8887[0D000000]                      mov [d+edi],al      ; d[edi] = al = s2[esi]
+    38 0000001D 4E                                  dec esi             ; esi = esi - 1 
+    39 0000001E 47                                  inc edi             ; edi = edi + 1     
+    40 0000001F E2F0                            loop second_string      ; ecx is decremented
+    41                                          
+    42                                          end_loop_second_string:
+    43                                          
+    44 00000021 B904000000                      mov ecx,l1/2       ; ecx gets half the length of the first string 
+    45                                          
+    46 00000026 BE01000000                      mov esi,1             ; we start from 1 ( the second position )
+    47                                          
+    48 0000002B E312                            jecxz end_loop_first_string    ; jump if ecx (l1/2-2) is 0 
+    49                                          
+    50                                          first_string:
+    51 0000002D 8A86[00000000]                      mov al,[s1+esi]      ; al = s1[esi]
+    52 00000033 8887[0D000000]                      mov [d+edi],al       ; d[edi] = al = s1[esi] 
+    53 00000039 83C602                              add esi,2            ; esi = esi + 2 
+    54 0000003C 47                                  inc edi              ; edi = edi + 1 
+    55 0000003D E2EE                            loop first_string        ; ecx is decremented
+    56                                          
+    57                                          end_loop_first_string:
+    58                                          
+    59                                          ; exit(0)
+    60 0000003F 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    61 00000041 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

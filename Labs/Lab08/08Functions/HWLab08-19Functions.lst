@@ -1,0 +1,97 @@
+     1                                  bits 32 
+     2                                  ; Read one byte and one word from the keyboard. Print on the screen "YES" if the bits of the byte read are found consecutively among the bits of the word and "NO" otherwise. Example: a = 10 = 0000 1010b
+     3                                  ; b = 256 = 0000 0001 0000 0000b
+     4                                  ; The value printed on the screen will be NO.
+     5                                  ; a = 0Ah = 0000 1010b
+     6                                  ; b = 6151h = 0110 0001 0101 0001b
+     7                                  ; The value printed on the screen will be YES (you can find the bits on positions 5-12).
+     8                                  global start        
+     9                                  
+    10                                  extern exit,scanf,printf               
+    11                                  import exit msvcrt.dll    
+    12                                  import scanf msvcrt.dll
+    13                                  import printf msvcrt.dll
+    14                                  ;To solve the problem, we must first say that there are x ways the bits from the byte could be found consecutively in the word: 0-7,1-8,...,9-16. Therefore, we can olate all the cases and compare each 
+    15                                  ;isolated b with the value from a. In case a==b, we jump to yes scenario. 
+    16                                  segment data use32 class=data
+    17                                      ; ...
+    18 00000000 0A00                        a dw 0Ah
+    19 00000002 51610000                    b dd 6151h
+    20                                      
+    21 00000006 7965730000000000            yes dd "yes",0
+    22 0000000E 6E6F000000000000            no dd "no",0
+    23                                      
+    24 00000016 613D00                      read_a db "a=",0
+    25 00000019 623D00                      read_b db "b=",0
+    26 0000001C 256400                      format db "%d",0
+    27 0000001F 257300                      print_format db "%s",0
+    28                                      
+    29 00000022 FF00                        cases dw 0000000011111111b
+    30 00000024 00                          k db 0
+    31                                  segment code use32 class=code
+    32                                      start:
+    33 00000000 31C0                            xor eax,eax
+    34 00000002 31D2                            xor edx,edx
+    35                                          ;"a="
+    36 00000004 68[16000000]                    push dword read_a         
+    37 00000009 FF15[00000000]                  call [printf]
+    38 0000000F 83C404                          add esp, 4
+    39                                          
+    40                                          ;read the value of a
+    41 00000012 68[00000000]                    push dword a
+    42 00000017 68[1C000000]                    push dword format
+    43 0000001C FF15[00000000]                  call [scanf]
+    44 00000022 83C408                          add esp, 4*2
+    45                                          
+    46                                          ;"b="
+    47 00000025 68[19000000]                    push dword read_b
+    48 0000002A FF15[00000000]                  call [printf]
+    49 00000030 83C404                          add esp, 4
+    50                                          
+    51                                          ;read the value of b
+    52 00000033 68[02000000]                    push dword b
+    53 00000038 68[1C000000]                    push dword format
+    54 0000003D FF15[00000000]                  call [scanf]
+    55 00000043 83C408                          add esp, 4*2
+    56                                          
+    57 00000046 B90A000000                      mov ecx,10     ;there are 10 cases, so we iterate 10 times 
+    58                                          
+    59                                          ;we convert [a] into a word, and keep it into dx.
+    60 0000004B 8A15[00000000]                  mov dl,[a]
+    61 00000051 B600                            mov dh,0       ; now dx = a 
+    62                                          
+    63                                          loop_word:
+    64 00000053 66A1[02000000]                      mov ax,[b]        ; we save b in ax 
+    65 00000059 662305[22000000]                    and ax,[cases]    ; we isolate bits 0-7/1-8.../9-16 of ax (b) 
+    66                                              
+    67                                            
+    68 00000060 6639D0                              cmp ax,dx         ; we compare ax (b) with dx (a)
+    69 00000063 742B                                je yes_scenario   ; if they are equal, we jump to printing yes 
+    70                                                                ; else, we go forward 
+    71                                                                ; and now we shift with one position to the left the value of cases
+    72 00000065 66D1E2                              shl dx,1
+    73 00000068 668B1D[22000000]                    mov bx, [cases]
+    74 0000006F 66D1E3                              shl bx, 1
+    75 00000072 66891D[22000000]                    mov [cases],bx
+    76                                              
+    77 00000079 E2D8                                loop loop_word     ;ecx is decremented
+    78                                              
+    79                                          no_scenario:
+    80                                              ;print "no"
+    81 0000007B 68[0E000000]                        push dword no
+    82 00000080 68[1F000000]                        push dword print_format
+    83 00000085 FF15[00000000]                      call [printf]
+    84 0000008B 83C408                              add esp,4*2
+    85 0000008E EB1A                                jmp end_    ; jump to the end, to avoid the "yes" part
+    86                                              
+    87                                          yes_scenario:
+    88                                              ;print "yes"
+    89 00000090 8005[24000000]01                    add [k],byte 1
+    90 00000097 68[06000000]                        push dword yes
+    91 0000009C 68[1F000000]                        push dword print_format 
+    92 000000A1 FF15[00000000]                      call [printf]
+    93 000000A7 83C408                              add esp, 4*2
+    94                                              
+    95                                          end_:
+    96 000000AA 6A00                            push dword 0      
+    97 000000AC FF15[00000000]                  call [exit]       

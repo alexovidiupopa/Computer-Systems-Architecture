@@ -1,0 +1,75 @@
+     1                                  bits 32 
+     2                                  ;A file name and a text (which can contain any type of character) are given in data segment. Calculate the sum of digits in the text. Create a file with the given name and write the result 
+     3                                  ;to file. 
+     4                                  global start        
+     5                                  
+     6                                  extern exit, fopen, fclose, fprintf, fread             
+     7                                  import exit msvcrt.dll
+     8                                  import fopen msvcrt.dll
+     9                                  import fclose msvcrt.dll
+    10                                  import fprintf msvcrt.dll    
+    11                                  import fread msvcrt.dll
+    12                                  segment data use32 class=data
+    13 00000000 323132333461626335-         text db "21234abc5efesriuys!!!@##@!%"
+    13 00000009 656665737269757973-
+    13 00000012 212121402323402125 
+    14                                      len equ $-text              
+    15                                      
+    16 0000001B 6F75742E74787400            fileName db "out.txt",0     ; the file name we were given 
+    17 00000023 7700                        accessMode db "w",0         ; we will be writing in the file, the access mode needs to be "w"
+    18 00000025 FFFFFFFF                    fileDescriptor dd -1        ; we need a double word in which to keep the value of the file descriptor returned when opening the file
+    19                                      
+    20 00000029 256400                      format db "%d",0            ; the print format 
+    21 0000002C 00000000                    sum dd 0                    ; the variable in which we compute the sum
+    22                                  segment code use32 class=code
+    23                                      start:
+    24 00000000 BE[00000000]                    mov esi,text        ; we store the adress of the text in esi 
+    25 00000005 B91B000000                      mov ecx,len         ; we store the length of the text in ecx 
+    26                                          
+    27 0000000A FC                              cld                 ; DF = 0, iterate from left to right, although the direction is not important
+    28                                          
+    29                                          loopString:         
+    30 0000000B AC                                  lodsb           ; AL = current byte from text 
+    31                                              
+    32 0000000C 3C30                                cmp al,'0'      ; compare the ascii code of al to the ascii code of 0       
+    33 0000000E 7C0C                                jl skip         ; if ascii (al) < ascii (0), it's obviously not a digit, so we jump to the label skip
+    34                                              
+    35 00000010 3C39                                cmp al,'9'      ; compare the ascii code of al to the ascii code of 9 
+    36 00000012 7F08                                jg skip         ; if ascii (al) > ascii (9), it's obviously not a digit, so we jump to the label skip
+    37                                              
+    38 00000014 2C30                                sub al,48       ; at this point the al is a digit, so we substract the value of '0', which is 48, to now have in al a value between [0,9]
+    39                                              
+    40 00000016 0005[2C000000]                      add [sum],al    ; we add al to the sum 
+    41                                              
+    42                                              skip:           ; here is where we jump in case al isn't a digit
+    43 0000001C FC                                  cld             ; DF = 0 
+    44 0000001D E2EC                                loop loopString     ; we loop again
+    45                                              
+    46                                      print: 
+    47                                          ; the following part is equivalent to f.open() in C 
+    48 0000001F 68[23000000]                    push dword accessMode           ; we push the access mode, which is "w" for writing 
+    49 00000024 68[1B000000]                    push dword fileName             ; we push the file name (out.txt)
+    50 00000029 FF15[00000000]                  call [fopen]                    ; we call the fopen function 
+    51 0000002F 83C408                          add esp,4*2                     ; we clear the stack
+    52                                          
+    53 00000032 A3[25000000]                    mov [fileDescriptor],eax        ; we store eax into fileDescriptor 
+    54                                          
+    55 00000037 83F800                          cmp eax,0     ; we check if the file was opened correctly
+    56 0000003A 7429                            je end_
+    57                                          
+    58                                          ; the following part does the equivalent in C: fprintf(file_descriptor,%d,sum)
+    59 0000003C FF35[2C000000]                  push dword [sum]                ; we push the sum onto the stack 
+    60 00000042 68[29000000]                    push dword format               ; we push the format (%d) onto the stack 
+    61 00000047 FF35[25000000]                  push dword [fileDescriptor]     ; we push the file descriptor we have stored previously from eax
+    62 0000004D FF15[00000000]                  call [fprintf]                  ; we call the fprintf function
+    63 00000053 83C40C                          add esp,4*3                     ; we clear the stack 
+    64                                          
+    65                                          ; the following part closes the file, equivalent to fileDescriptor.close() in C 
+    66 00000056 FF35[25000000]                  push dword [fileDescriptor]     ;we push the file descriptor 
+    67 0000005C FF15[00000000]                  call [fclose]                   ; we call the fclose function 
+    68 00000062 83C404                          add esp,4                       ; we clear the stack 
+    69                                          
+    70                                          end_:
+    71                                          ; exit(0)
+    72 00000065 6A00                            push    dword 0      
+    73 00000067 FF15[00000000]                  call    [exit]      

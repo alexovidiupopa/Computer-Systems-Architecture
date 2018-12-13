@@ -1,0 +1,48 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; Given the doubleword M, compute the doubleword MNew as follows:
+    12                                  
+    13                                      ; the bits 0-3 a of MNew are the same as the bits 5-8 a of M.
+    14                                      ; the bits 4-7 a of MNew have the value 1
+    15                                      ; the bits 27-31 a of MNew have the value 0
+    16                                      ; the bits 8-26 of MNew are the same as the bits 8-26 a of M.
+    17                                  ; our data is declared here (the variables needed by our program)
+    18                                  segment data use32 class=data
+    19 00000000 A3B0B92D                    M dd 00101101101110011011000010100011b
+    20 00000004 00000000                    MNew dd 0
+    21                                  
+    22                                  ; our code starts here
+    23                                  segment code use32 class=code
+    24                                      start:
+    25                                          ; ...
+    26 00000000 BB00000000                      mov ebx, 0  ;we compute the result in ebx
+    27                                          
+    28 00000005 A1[00000000]                    mov eax,[M] ;eax is now = M
+    29                                          
+    30 0000000A 25E0010000                      and eax, 00000000000000000000000111100000b ; we isolate bits 5-8 of M,using the logical and
+    31                                          
+    32 0000000F B105                            mov cl, 5 ; we will be doing a rotation with 5 positions, so cl gets 5
+    33 00000011 D3C8                            ror eax,cl ; we rotate 5 positions to the right 
+    34 00000013 09C3                            or ebx,eax ; we put the bits 5-8 of M into the result, on positions 0-3
+    35                                          
+    36 00000015 81CBF0000000                    or ebx, 00000000000000000000000011110000b ;we force bits 4-7 of ebx to have the value 1, using the logical or
+    37                                          
+    38 0000001B 81E3FFFFFF07                    and ebx,00000111111111111111111111111111b  ;we force bits 27-31 of ebx to have the value 0, using the logical and
+    39                                          
+    40 00000021 A1[00000000]                    mov eax,[M] ; EAX is now = M
+    41                                          
+    42 00000026 2500FFFF07                      and eax, 00000111111111111111111100000000b ;we isolate bits 8-26 of M 
+    43 0000002B 09C3                            or ebx,eax ; now the 8-26 bits stored in ebx are the same as the 8-26 bits of M
+    44                                          
+    45 0000002D 891D[04000000]                  mov [MNew],ebx ;we move the register value into the MNEw variable
+    46                                          ; exit(0)
+    47 00000033 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    48 00000035 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

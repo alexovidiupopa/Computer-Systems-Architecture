@@ -1,0 +1,102 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; DECLARATIONS ADDITION-BYTE 21
+    14                                      ; a db 15
+    15                                      ; b db 3
+    16                                      ; c db 6
+    17                                      ; d db 3
+    18                                      
+    19                                      ;DECLARATIONS ADDITION-WORD 21
+    20                                      ; a dw 15
+    21                                      ; b dw 3
+    22                                      ; c dw 6
+    23                                      ; d dw 3
+    24                                      
+    25                                      ;DECLARATIONS MULTIPLICATION- BYTE 21
+    26                                      ; a db 5
+    27                                      ; b db 6
+    28                                      ; c db 3
+    29                                      ; d dw 10
+    30                                      
+    31                                      ;DECLARATIONS MULTIPLICATION- BYTE + WORD 21
+    32 00000000 00                          a db 0
+    33 00000001 02                          b db 2
+    34 00000002 03                          c db 3
+    35 00000003 06                          d db 6
+    36 00000004 0500                        e dw 5
+    37 00000006 0800                        f dw 8
+    38 00000008 0D00                        g dw 13
+    39 0000000A 0600                        h dw 6
+    40                                  
+    41                                  ; our code starts here
+    42                                  segment code use32 class=code
+    43                                      start:
+    44 00000000 31C0                            xor eax,eax
+    45 00000002 31DB                            xor ebx,ebx
+    46 00000004 31C9                            xor ecx,ecx
+    47 00000006 31D2                            xor edx,edx
+    48                                          ; Calculate 15/3
+    49                                          ; mov AX, 15
+    50                                          ; mov DL, 3
+    51                                          ; div DL
+    52                                          
+    53                                          ;Calculate (a-b)+(d-c) on bytes (21). For a = 15, b = 3, c = 6 , d = 3 => expression result is 9, stored in AL register
+    54                                          ; mov AL,[a]
+    55                                          ; sub AL, [b]
+    56                                          ; mov AH, [d]
+    57                                          ; sub AH, [c]
+    58                                          ; add AL,AH
+    59                                          
+    60                                          ;Calculate a-c+d-7+b-(2+d) on words (21) . For a = 15, b = 3, c = 6 , d = 3 => expression result is 3, stored in the AX register
+    61                                          ; mov AX,[a]
+    62                                          ; sub AX,[c]
+    63                                          ; add AX,[d]
+    64                                          ; sub AX, 7
+    65                                          ; add AX,[b]
+    66                                          ; mov BX, 2
+    67                                          ; add BX, [d]
+    68                                          ; sub AX,BX
+    69                                          
+    70                                          ;Calculate d-[3*(a+b+2)-5*(c+2)]. For a = 5 , b = 6 , c = 3 bytes , d = 10 word => expression result is -4, stored in the BX register
+    71                                          ; mov BX,[d]
+    72                                          ; mov AL,[a]
+    73                                          ; add AL,[b]
+    74                                          ; add AL, 2
+    75                                          ; mov AH, 3
+    76                                          ; mul AH 
+    77                                          ; mov CX,AX
+    78                                          ; mov AL,[c]
+    79                                          ; add AL, 2
+    80                                          ; mov AH,5
+    81                                          ; mul AH
+    82                                          ; sub CX,AX
+    83                                          ; sub BX, CX
+    84                                          
+    85                                          ;Calculate (f*g-a*b*e)/(h+c*d). For a = 0, b = 2 , c = 3 , d = 6 bytes , e = 5 , f = 4 , g = 8 , h = 7 words => expression result is 4 stored in AX with remainder 8 stored in DX 
+    86 00000008 66A1[06000000]                  mov ax,[f]
+    87 0000000E 66F725[08000000]                mul word [g]
+    88 00000015 6689C3                          mov bx,ax
+    89 00000018 A0[00000000]                    mov al,[a]
+    90 0000001D F625[01000000]                  mul byte [b]
+    91 00000023 66F725[04000000]                mul word [e]
+    92 0000002A 6629C3                          sub bx,ax
+    93 0000002D A0[02000000]                    mov al,[c]
+    94 00000032 F625[03000000]                  mul byte [d]
+    95 00000038 660305[0A000000]                add ax,[h]
+    96 0000003F 6689C1                          mov cx,ax
+    97 00000042 6689D8                          mov ax,bx
+    98 00000045 66F7F1                          div word cx
+    99                                          
+   100                                          ; exit(0)
+   101 00000048 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   102 0000004A FF15[00000000]                  call    [exit]       ; call exit to terminate the program
