@@ -1,27 +1,31 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-void readSentence(char sentence[]);
+int readSentence(char *sentence)
+{
+    scanf("%s",sentence);
+	return strlen(sentence);
 
-void getLetters(char sentence[],char letters[],int a,int z);
+}
 
+void getLetters(char *letters);
+
+char sentence[6]="ABCDe";
+int length;
+char bigLetters[101]="";
+char smallLetters[101]="";
 int main()
 {
-    char sentence[101];
-    readSentence(sentence);
-    
-    char bigLetters[101];
-    char smallLetters[101];
-    
-    getLetters(sentence,bigLetters,65,90)
-    printf("%s",bigLetters)
-    
-    getLetters(sentence,smallLetters,97,122)
-    printf("%s",smallLetters)
-    
-    return 0;
+    length = 5;
+
+    getLetters(bigLetters);
+	printf("%c",bigLetters[0]);
+    printf("%s",bigLetters);
+
+    //getLetters(sentence,smallLetters,97,122)
+    //printf("%s",smallLetters)
+
+   return 0;
 }
 
-void readSentence(char sentence[])
-{
-    scanf("%s",sentence)
-}
