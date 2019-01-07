@@ -1,0 +1,105 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  ;A text file is given. Read the content of the file, determine the uppercase letter with the highest frequency and display the letter along with its frequency on the screen. The name of text file is defined in the d
+     3                                  
+     4                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     5                                  global start        
+     6                                  
+     7                                  ; declare external functions needed by our program
+     8                                  extern exit,fopen,fread,fclose,printf                ; tell nasm that exit exists even if we won't be defining it
+     9                                  import exit msvcrt.dll
+    10                                  import fopen msvcrt.dll 
+    11                                  import fread msvcrt.dll 
+    12                                  import fclose msvcrt.dll
+    13                                  import printf msvcrt.dll     ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    14                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    15                                  
+    16                                  ; our data is declared here (the variables needed by our program)
+    17                                  segment data use32 class=data
+    18 00000000 6669732E74787400            fileName db "fis.txt",0
+    19 00000008 7200                        accessMode db "r",0
+    20 0000000A FFFFFFFF                    fileDescriptor dd -1
+    21 0000000E <res 00000064>              sir resb 100
+    22                                      len equ 100
+    23 00000072 00<rept>                    appearences times 26 db 0 
+    24 0000008C 00                          max db 0 
+    25 0000008D 00                          maxLetter db 0 
+    26 0000008E 4C6574746572202563-         message db "Letter %c appeared %d times",0
+    26 00000097 206170706561726564-
+    26 000000A0 2025642074696D6573-
+    26 000000A9 00                 
+    27 000000AA 00                          readChars db 0
+    28 000000AB 00                          aux db 0
+    29                                  ; our code starts here
+    30                                  segment code use32 class=code
+    31                                      start:
+    32                                          ; ...
+    33 00000000 68[08000000]                    push dword accessMode
+    34 00000005 68[00000000]                    push dword fileName 
+    35 0000000A FF15[00000000]                  call [fopen]
+    36 00000010 83C408                          add esp,4*2
+    37                                          
+    38 00000013 83F800                          cmp eax,0
+    39 00000016 0F8495000000                    je end_
+    40                                          
+    41 0000001C A3[0A000000]                    mov [fileDescriptor],eax
+    42                                          readLoop: 
+    43                                              
+    44 00000021 FF35[0A000000]                      push dword [fileDescriptor]
+    45 00000027 6A64                                push dword len 
+    46 00000029 6A01                                push dword 1 
+    47 0000002B 68[0E000000]                        push dword sir
+    48 00000030 FF15[00000000]                      call [fread]
+    49 00000036 83C410                              add esp,4*4
+    50                                              
+    51 00000039 83F800                              cmp eax,0 
+    52 0000003C 7429                                je clean 
+    53                                              
+    54 0000003E 89C1                                mov ecx,eax
+    55 00000040 BE[0E000000]                        mov esi,sir 
+    56 00000045 FC                                  cld
+    57                                              characters: 
+    58 00000046 AC                                      lodsb 
+    59 00000047 3C41                                    cmp al,'A'
+    60 00000049 7C18                                    jl next
+    61                                                  
+    62 0000004B 3C5A                                    cmp al,'Z'
+    63 0000004D 7F14                                    jg next 
+    64                                                  
+    65 0000004F 2C41                                    sub al,'A'
+    66 00000051 A2[AB000000]                            mov [aux],al
+    67 00000056 8B35[AB000000]                          mov esi,[aux]
+    68 0000005C 8086[72000000]01                        add [appearences+esi],byte 1
+    69                                                  
+    70                                                  next:
+    71 00000063 E2E1                                    loop characters
+    72 00000065 E2BA                                loop readLoop
+    73                                          clean: 
+    74 00000067 FF35[0A000000]                      push dword [fileDescriptor]
+    75 0000006D FF15[00000000]                      call [fclose]
+    76 00000073 83C404                              add esp,4
+    77                                              
+    78 00000076 B91A000000                      mov ecx,26
+    79 0000007B BE[72000000]                    mov esi,appearences
+    80                                          loop_appearences: 
+    81 00000080 AC                                  lodsb 
+    82 00000081 3A05[8C000000]                      cmp al,[max]
+    83 00000087 7F0C                                jg next2
+    84 00000089 A2[8C000000]                        mov [max],al
+    85 0000008E 0441                                add al,'A'
+    86 00000090 A2[8D000000]                        mov [maxLetter],al
+    87                                              
+    88                                              next2:
+    89 00000095 E2E9                                loop loop_appearences
+    90                                          
+    91 00000097 68[8E000000]                    push dword message 
+    92 0000009C FF35[8D000000]                  push dword [maxLetter]
+    93 000000A2 FF35[8C000000]                  push dword [max] 
+    94 000000A8 FF15[00000000]                  call [printf]
+    95 000000AE 83C40C                          add esp,4*3
+    96                                          
+    97                                          end_:
+    98                                          
+    99                                          
+   100                                          ; exit(0)
+   101 000000B1 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   102 000000B3 FF15[00000000]                  call    [exit]       ; call exit to terminate the program
