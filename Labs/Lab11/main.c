@@ -6,21 +6,19 @@ int readSentence(char *sentence)
 {
     scanf("%s",sentence);
 	return strlen(sentence);
-
 }
 
 void getLetters(char *letters);
 
-char sentence[6]="ABCDe";
+char sentence[101];
 int length;
 char bigLetters[101]="";
 char smallLetters[101]="";
 int main()
 {
-    length = 5;
+	length = readSentence(sentence);
 
-    getLetters(bigLetters);
-	printf("%c",bigLetters[0]);
+    getLetters(bigLetters,65,90);
     printf("%s",bigLetters);
 
     //getLetters(sentence,smallLetters,97,122)
