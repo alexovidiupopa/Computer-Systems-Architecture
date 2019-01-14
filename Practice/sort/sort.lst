@@ -1,0 +1,65 @@
+     1                                  bits 32
+     2                                  
+     3                                  global start        
+     4                                  
+     5                                  extern exit, printf
+     6                                  import exit msvcrt.dll
+     7                                  import printf msvcrt.dll
+     8                                  
+     9                                  segment data use32 class=data
+    10 00000000 040207010908030506          s db 4, 2, 7, 1, 9, 8, 3, 5, 6
+    11                                      len equ $-s
+    12                                  
+    13                                  ; Another implementation of bubble sort in assembly language
+    14                                  ; The string s is sorted in-place.
+    15                                  ; Use 'Debug program' option to run it.
+    16                                  segment code use32 class=code
+    17                                      start:
+    18 00000000 FC                              cld
+    19 00000001 BE[00000000]                    mov esi, s
+    20                                          
+    21 00000006 B909000000                      mov ecx, len
+    22 0000000B 49                              dec ecx                         ; 0 <= i < len-1
+    23                                          
+    24                                          outer_loop:
+    25 0000000C 51                                  push ecx
+    26                                              
+    27 0000000D AC                                  lodsb
+    28 0000000E 56                                  push esi
+    29                                              
+    30 0000000F 4E                                  dec esi
+    31 00000010 BB01000000                          mov ebx, 1                  ; j = i+1
+    32                                              inner_loop:
+    33 00000015 8A141E                                  mov dl, [esi + ebx]
+    34                                                  
+    35 00000018 38D0                                    cmp al, dl
+    36 0000001A 720B                                    jb .skip_swap
+    37                                                  
+    38                                                  ; swap
+    39                                                  ; mov [esi + ebx], al
+    40                                                  ; mov [esi], dl
+    41                                                  ; mov al, dl
+    42                                                  
+    43 0000001C 89F7                                    mov edi, esi    ; USE xchg
+    44 0000001E 01DF                                    add edi, ebx
+    45 00000020 A4                                      movsb
+    46 00000021 4E                                      dec esi
+    47                                                  
+    48 00000022 88D0                                    mov al, dl
+    49 00000024 89F7                                    mov edi, esi
+    50 00000026 AA                                      stosb
+    51                                                  
+    52                                                .skip_swap:
+    53 00000027 43                                      inc ebx
+    54 00000028 83FB09                                  cmp ebx, len
+    55 0000002B 7402                                    je .next  
+    56 0000002D E2E6                                loop inner_loop
+    57                                  
+    58                                            .next:
+    59 0000002F 5E                                  pop esi
+    60 00000030 59                                  pop ecx
+    61 00000031 E2D9                            loop outer_loop
+    62                                      
+    63                                          ; exit(0)
+    64 00000033 6A00                            push dword 0                    ; push the parameter for exit onto the stack
+    65 00000035 FF15[00000000]                  call [exit]                     ; call exit to terminate the program

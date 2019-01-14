@@ -1,0 +1,113 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  ;A text file is given. Read the content of the file, determine the digit with the highest frequency and display the digit along with its frequency on the screen. The name of text file is defined in the data segment.
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,fopen,printf,fread,fclose               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                  import fopen msvcrt.dll                          ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  import printf msvcrt.dll
+    11                                  import fread msvcrt.dll
+    12                                  import fclose msvcrt.dll
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15 00000000 6669732E74787400            fileName db "fis.txt",0
+    16 00000008 7200                        access db "r",0
+    17 0000000A FFFFFFFF                    fileDescriptor dd -1
+    18                                      max equ 100
+    19 0000000E 00<rept>                    content times max+1 db 0
+    20 00000073 00<rept>                    freq times 10 db 0
+    21 0000007D 25642020256300              pFormat db "%d  %c",0
+    22 00000084 00000000                    max2 dd 0
+    23 00000088 00000000                    letter dd 0
+    24 0000008C 00000000                    aux dd 0
+    25                                  ; our code starts here
+    26                                  segment code use32 class=code
+    27                                      start:
+    28 00000000 68[08000000]                    push dword access
+    29 00000005 68[00000000]                    push dword fileName 
+    30 0000000A FF15[00000000]                  call [fopen]
+    31 00000010 83C408                          add esp,4*2
+    32                                          
+    33 00000013 83F800                          cmp eax,0
+    34 00000016 0F84A2000000                    je end_
+    35                                          
+    36 0000001C A3[0A000000]                    mov [fileDescriptor],eax
+    37                                          
+    38                                          
+    39                                          loop_read: 
+    40                                              
+    41 00000021 FF35[0A000000]                      push dword [fileDescriptor]
+    42 00000027 6A64                                push dword max 
+    43 00000029 6A01                                push dword 1 
+    44 0000002B 68[0E000000]                        push dword content 
+    45 00000030 FF15[00000000]                      call [fread]
+    46 00000036 83C410                              add esp,4*4
+    47                                              
+    48 00000039 83F800                              cmp eax,0 
+    49 0000003C 7422                                je out_
+    50                                              
+    51 0000003E 89C1                                mov ecx,eax 
+    52 00000040 BE[0E000000]                        mov esi,content
+    53 00000045 FC                                  cld 
+    54                                              loop_content: 
+    55                                                  
+    56 00000046 31C0                                    xor eax,eax
+    57 00000048 AC                                      lodsb 
+    58                                                  
+    59 00000049 3C30                                    cmp al,'0'
+    60 0000004B 7C0F                                    jl skip_ 
+    61                                                  
+    62 0000004D 3C39                                    cmp al,'9'
+    63 0000004F 7F0B                                    jg skip_ 
+    64                                                  
+    65 00000051 2C30                                    sub al, '0'
+    66                                                  
+    67 00000053 89C7                                    mov edi,eax
+    68                                                  
+    69 00000055 8087[73000000]01                        add [freq+edi],byte 1
+    70                                                  
+    71                                                  skip_:
+    72 0000005C E2E8                                    loop loop_content
+    73 0000005E EBC1                                jmp loop_read
+    74                                          out_:
+    75 00000060 B90A000000                      mov ecx, 10
+    76 00000065 BF00000000                      mov edi, 0 
+    77                                          
+    78                                          loop_print: 
+    79 0000006A 31C0                                xor eax,eax
+    80                                               
+    81                                              
+    82 0000006C 8A87[73000000]                      mov al,[freq+edi] 
+    83                                              
+    84 00000072 3B05[84000000]                      cmp eax,[max2]
+    85 00000078 7C18                                jl skip2_
+    86                                              
+    87 0000007A A3[84000000]                        mov [max2],eax
+    88                                              
+    89 0000007F 893D[8C000000]                      mov [aux],edi 
+    90 00000085 A1[8C000000]                        mov eax,[aux]
+    91 0000008A 83C030                              add eax,'0'
+    92                                              
+    93 0000008D A3[88000000]                        mov [letter],eax
+    94                                              
+    95                                              skip2_:
+    96                                              
+    97 00000092 47                                  inc edi
+    98 00000093 E2D5                                loop loop_print
+    99                                              
+   100                                              
+   101 00000095 FF35[88000000]                  push dword [letter]
+   102 0000009B FF35[84000000]                  push dword [max2]
+   103 000000A1 68[7D000000]                    push dword pFormat
+   104 000000A6 FF15[00000000]                  call [printf]
+   105 000000AC 83C40C                          add esp,4*3
+   106                                          
+   107 000000AF FF35[0A000000]                  push dword [fileDescriptor]
+   108 000000B5 FF15[00000000]                  call [fclose]
+   109 000000BB 83C404                          add esp,4
+   110                                          end_:
+   111                                          ; exit(0)
+   112 000000BE 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   113 000000C0 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

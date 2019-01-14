@@ -1,0 +1,75 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  ;A file name and a hexadecimal number (on 16 bits) are given. Create a file with the given name and write each nibble composing the hexadecimal number on a different line to file. 
+     6                                  
+     7                                  ; declare external functions needed by our program
+     8                                  extern exit,fopen,fclose,fprintf               ; tell nasm that exit exists even if we won't be defining it
+     9                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    10                                  import fopen msvcrt.dll                          ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    11                                  import fclose msvcrt.dll
+    12                                  import fprintf msvcrt.dll
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15                                      ; ...
+    16 00000000 6669732E74787400            fileName db "fis.txt",0 
+    17 00000008 25780A0D00                  format db "%x",10,13,0
+    18 0000000D 7700                        access db "w",0
+    19 0000000F 3412                        number dw 1234h
+    20 00000011 FFFFFFFF                    fileDescriptor dd -1
+    21 00000015 0F000000                    bitMask dd 0000000000001111b
+    22 00000019 0C080400                    moves db 12,8,4,0
+    23                                  ; our code starts here
+    24                                  segment code use32 class=code
+    25                                      start:
+    26                                          ; ...
+    27 00000000 68[0D000000]                    push dword access
+    28 00000005 68[00000000]                    push dword fileName
+    29 0000000A FF15[00000000]                  call [fopen]
+    30 00000010 83C408                          add esp,4*2
+    31                                          
+    32 00000013 83F800                          cmp eax,0
+    33 00000016 7455                            je end_
+    34                                          
+    35 00000018 A3[11000000]                    mov [fileDescriptor],eax 
+    36 0000001D 66A1[0F000000]                  mov ax,[number]
+    37 00000023 B904000000                      mov ecx,4 
+    38                                          
+    39                                          nibbles: 
+    40 00000028 51                                  push ecx 
+    41                                              
+    42 00000029 83E901                              sub ecx,1 
+    43 0000002C 89CE                                mov esi, ecx 
+    44                                              
+    45 0000002E 8A8E[19000000]                      mov cl, [moves+esi]
+    46                                              
+    47                                              ;mov ecx,8
+    48 00000034 89C3                                mov ebx,eax
+    49                                              ;xor eax,eax 
+    50                                              ;mov eax,ecx 
+    51                                              
+    52 00000036 66D3E8                              shr ax,cl 
+    53 00000039 6631D2                              xor dx,dx 
+    54 0000003C 6689C2                              mov dx,ax 
+    55 0000003F 662315[15000000]                    and dx,[bitMask] 
+    56                                              
+    57                                              
+    58 00000046 52                                  push dword edx
+    59 00000047 68[08000000]                        push dword format 
+    60 0000004C FF35[11000000]                      push dword [fileDescriptor]
+    61 00000052 FF15[00000000]                      call [fprintf]
+    62 00000058 83C40C                              add esp,4*3
+    63                                              
+    64                                             
+    65 0000005B 59                                  pop ecx 
+    66                                              
+    67 0000005C E2CA                                loop nibbles 
+    68                                          
+    69 0000005E FF35[11000000]                  push dword [fileDescriptor]
+    70 00000064 FF15[00000000]                  call [fclose]
+    71 0000006A 83C404                          add esp,4
+    72                                          end_:
+    73                                          ; exit(0)
+    74 0000006D 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    75 0000006F FF15[00000000]                  call    [exit]       ; call exit to terminate the program

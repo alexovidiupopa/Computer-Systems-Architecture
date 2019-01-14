@@ -1,0 +1,125 @@
+     1                                  ;Se citeste de la tastatura un nume de fisier care contine propoz (termina cu .)
+     2                                  ;Afisati ultimul cuv din fiecare propoz in consola, cuvantul fiind afisat invers.
+     3                                  
+     4                                  bits 32 
+     5                                  
+     6                                  global start        
+     7                                  
+     8                                  extern exit,scanf,printf,fclose,fopen,fread               
+     9                                  import exit msvcrt.dll 
+    10                                  import scanf msvcrt.dll 
+    11                                  import printf msvcrt.dll 
+    12                                  import fopen msvcrt.dll 
+    13                                  import fclose msvcrt.dll 
+    14                                  import fread msvcrt.dll 
+    15                                  
+    16                                  segment data use32 class=data
+    17 00000000 00<rept>                    fileName times 20 db 0
+    18 00000014 257300                      formatReadKeyboard db "%s",0
+    19 00000017 FFFFFFFF                    fileDescriptor dd -1
+    20 0000001B 7200                        accessMode db "r",0
+    21                                      max equ 100
+    22 0000001D 00<rept>                    text times 100 db 0
+    23 00000081 00000000                    numberOfChars dd 0
+    24 00000085 00<rept>                    result times 100 db 0
+    25 000000E9 25642000                    format db "%d ",0
+    26 000000ED 00<rept>                    wordMax times 20 db 0
+    27 00000101 2573202000                  printFormat db "%s  ",0
+    28 00000106 0A0D00                      endLine db 10,13,0
+    29                                  segment code use32 class=code
+    30                                      start:
+    31                                          ; read the file name from keyboard 
+    32 00000000 68[00000000]                    push dword fileName 
+    33 00000005 68[14000000]                    push dword formatReadKeyboard 
+    34 0000000A FF15[00000000]                  call [scanf]
+    35 00000010 83C408                          add esp,4*2 
+    36                                          
+    37                                          ; open the file
+    38 00000013 68[1B000000]                    push dword accessMode
+    39 00000018 68[00000000]                    push dword fileName 
+    40 0000001D FF15[00000000]                  call [fopen]
+    41 00000023 83C408                          add esp,4*2 
+    42                                          
+    43                                          ;check if file opened correctly, if not jump to end_ 
+    44 00000026 83F800                          cmp eax,0 
+    45 00000029 747B                            je end_
+    46                                          
+    47 0000002B A3[17000000]                    mov [fileDescriptor],eax 
+    48                                          
+    49                                          read: 
+    50                                              
+    51                                          ;read the text. it has maximum 100 elements, so no loop validation required.
+    52 00000030 FF35[17000000]                  push dword [fileDescriptor]
+    53 00000036 6A64                            push dword max 
+    54 00000038 6A01                            push dword 1 
+    55 0000003A 68[1D000000]                    push dword text 
+    56 0000003F FF15[00000000]                  call [fread]
+    57 00000045 83C410                          add esp,4*4 
+    58                                          
+    59                                         
+    60 00000048 A3[81000000]                    mov [numberOfChars],eax 
+    61                                          
+    62                                          ; save the necessary registers
+    63 0000004D 8B0D[81000000]                  mov ecx,[numberOfChars]
+    64 00000053 BE[1D000000]                    mov esi,text
+    65 00000058 BF[ED000000]                    mov edi,wordMax
+    66 0000005D FC                              cld
+    67                                          loop_sentence: 
+    68 0000005E 51                                  push ecx
+    69 0000005F AC                                  lodsb  ; al = current byte
+    70                                              
+    71                                              ; see if current byte is '.'. if yes,go to point
+    72 00000060 3C2E                                cmp al,'.'
+    73 00000062 7407                                je point
+    74                                              
+    75                                              ; see if current byte is ' '. if yes,skip
+    76 00000064 3C20                                cmp al,' '
+    77 00000066 7418                                je skip 
+    78                                             
+    79                                              ; else store the letter and jump to the next 
+    80                                              
+    81 00000068 AA                                  stosb
+    82 00000069 EB29                                jmp next
+    83                                                  
+    84                                              point: 
+    85                                                  ; print the last word
+    86                                                
+    87 0000006B 68[ED000000]                            push dword wordMax 
+    88 00000070 68[01010000]                            push dword printFormat
+    89 00000075 FF15[00000000]                          call [printf]
+    90 0000007B 83C404                                  add esp,4 
+    91                                                  
+    92 0000007E EB14                                    jmp next
+    93                                                  
+    94                                              skip: 
+    95                                                  ;re-initialize the temporary word 
+    96 00000080 BF[ED000000]                            mov edi, wordMax 
+    97 00000085 B914000000                              mov ecx, 20 
+    98                                                  reinit: 
+    99 0000008A B000                                        mov al,0 
+   100 0000008C AA                                          stosb 
+   101 0000008D E2FB                                        loop reinit 
+   102 0000008F BF[ED000000]                            mov edi,wordMax
+   103                                                  
+   104                                              next: 
+   105                                              
+   106 00000094 59                                  pop ecx 
+   107 00000095 E2C7                                loop loop_sentence
+   108                                              
+   109                                          
+   110                                          ;just checked if the sentence was read correctly 
+   111                                          ; push dword text  
+   112                                          ; call [printf]
+   113                                          ; add esp,4
+   114                                          
+   115                                          
+   116                                          ; close the file 
+   117 00000097 FF35[17000000]                  push dword [fileDescriptor]
+   118 0000009D FF15[00000000]                  call [fclose]
+   119 000000A3 83C404                          add esp,4
+   120                                          
+   121                                          end_:
+   122                                          
+   123                                          
+   124 000000A6 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   125 000000A8 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

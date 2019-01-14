@@ -1,0 +1,70 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  ;Read two numbers a and b (in base 10) from the keyboard and determine the order relation between them (either a < b, or a = b, or a > b). Display the result in the following format: "<a> < <b>, <a> = <b> or <a> > <
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,scanf,printf               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll
+     9                                  import scanf msvcrt.dll
+    10                                  import printf msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    11                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    12                                  
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15                                      ; ...
+    16 00000000 25643C256400                printLess db "%d<%d",0
+    17 00000006 25643E256400                printGreater db "%d>%d",0
+    18 0000000C 25643D256400                printEqual db "%d=%d",0
+    19 00000012 256400                      readFormatA db "%d",0
+    20 00000015 256400                      readFormatB db "%d",0
+    21 00000018 00000000                    a dd 0
+    22 0000001C 00000000                    b dd 0
+    23                                  ; our code starts here
+    24                                  segment code use32 class=code
+    25                                      start:
+    26                                          ; ...
+    27 00000000 68[18000000]                    push dword a
+    28 00000005 68[12000000]                    push dword readFormatA
+    29 0000000A FF15[00000000]                  call [scanf]
+    30 00000010 83C408                          add esp,4*2
+    31                                          
+    32 00000013 68[1C000000]                    push dword b
+    33 00000018 68[15000000]                    push dword readFormatB
+    34 0000001D FF15[00000000]                  call [scanf]
+    35 00000023 83C408                          add esp,4*2
+    36                                          
+    37 00000026 A1[18000000]                    mov eax,[a]
+    38 0000002B 3B05[1C000000]                  cmp eax,[b]
+    39 00000031 7C04                            jl less 
+    40 00000033 7F1E                            jg greater
+    41 00000035 7438                            je equal
+    42                                          
+    43                                          less:
+    44                                          
+    45 00000037 FF35[1C000000]                  push dword [b]
+    46 0000003D FF35[18000000]                  push dword [a]
+    47 00000043 68[00000000]                    push dword printLess
+    48 00000048 FF15[00000000]                  call [printf]
+    49 0000004E 83C40C                          add esp,4*3
+    50 00000051 EB36                            jmp end_
+    51                                          greater: 
+    52                                          
+    53 00000053 FF35[1C000000]                  push dword [b]
+    54 00000059 FF35[18000000]                  push dword [a]
+    55 0000005F 68[06000000]                    push dword printGreater 
+    56 00000064 FF15[00000000]                  call [printf]
+    57 0000006A 83C40C                          add esp,4*3
+    58 0000006D EB1A                            jmp end_
+    59                                          equal: 
+    60                                          
+    61 0000006F FF35[1C000000]                  push dword [b]
+    62 00000075 FF35[18000000]                  push dword [a]
+    63 0000007B 68[0C000000]                    push dword printEqual
+    64 00000080 FF15[00000000]                  call [printf]
+    65 00000086 83C40C                          add esp,4*3
+    66                                          
+    67                                          end_:
+    68                                          ; exit(0)
+    69 00000089 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    70 0000008B FF15[00000000]                  call    [exit]       ; call exit to terminate the program

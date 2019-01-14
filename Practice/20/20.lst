@@ -1,0 +1,60 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  ;Read two doublewords a and b in base 16 from the keyboard. Display the sum of the low parts of the two numbers and the difference between the high parts of the two numbers in base 16 Example:
+     6                                  ;a = 00101A35h
+     7                                  ;b = 00023219h
+     8                                  ;sum = 4C4Eh
+     9                                  ;difference = Eh
+    10                                  ; declare external functions needed by our program
+    11                                  extern exit,scanf,printf               ; tell nasm that exit exists even if we won't be defining it
+    12                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    13                                  import scanf msvcrt.dll                          ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    14                                  import printf msvcrt.dll 
+    15                                  ; our data is declared here (the variables needed by our program)
+    16                                  segment data use32 class=data
+    17                                      ; ...
+    18 00000000 73756D3D2578680A0D-         sumPrint db "sum=%xh",10,13,0
+    18 00000009 00                 
+    19 0000000A 6469663D25786800            difPrint db "dif=%xh",0
+    20 00000012 0000                        sum dw 0 
+    21 00000014 0000                        dif dw 0 
+    22 00000016 00000000                    a dd 0 
+    23 0000001A 00000000                    b dd 0
+    24 0000001E 257800                      readFormat db "%x",0
+    25                                      
+    26                                  ; our code starts here
+    27                                  segment code use32 class=code
+    28                                      start:
+    29                                          ; ...
+    30 00000000 68[16000000]                    push dword a 
+    31 00000005 68[1E000000]                    push dword readFormat
+    32 0000000A FF15[00000000]                  call [scanf]
+    33 00000010 83C408                          add esp,4*2
+    34                                          
+    35 00000013 68[1A000000]                    push dword b 
+    36 00000018 68[1E000000]                    push dword readFormat
+    37 0000001D FF15[00000000]                  call [scanf]
+    38 00000023 83C408                          add esp,4*2
+    39                                          
+    40 00000026 31C0                            xor eax,eax 
+    41 00000028 66A1[16000000]                  mov ax,word [a]
+    42 0000002E 660305[1A000000]                add ax,word [b]
+    43                                          
+    44 00000035 50                              push dword eax 
+    45 00000036 68[00000000]                    push dword sumPrint 
+    46 0000003B FF15[00000000]                  call [printf]
+    47 00000041 83C408                          add esp,4*2
+    48                                          
+    49 00000044 31C0                            xor eax,eax 
+    50 00000046 66A1[18000000]                  mov ax,word [a+2]
+    51 0000004C 662B05[1C000000]                sub ax,word [b+2]
+    52                                          
+    53 00000053 50                              push dword eax 
+    54 00000054 68[0A000000]                    push dword difPrint 
+    55 00000059 FF15[00000000]                  call [printf]
+    56 0000005F 83C408                          add esp,4*2
+    57                                          ; exit(0)
+    58 00000062 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    59 00000064 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

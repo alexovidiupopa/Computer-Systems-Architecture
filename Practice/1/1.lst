@@ -1,0 +1,81 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  ;A text file is given. Read the content of the file, count the number of vowels and display the result on the screen. The name of text file is defined in the data segment. 
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,fopen,printf,fread,fclose,fscanf              ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                  import fopen msvcrt.dll                          ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  import fread msvcrt.dll
+    11                                  import printf msvcrt.dll
+    12                                  import fclose msvcrt.dll
+    13                                  import fscanf msvcrt.dll
+    14                                  ; our data is declared here (the variables needed by our program)
+    15                                  segment data use32 class=data
+    16                                      ; ...
+    17 00000000 00000000                    vowels dd 0
+    18 00000004 6669732E74787400            fileName db "fis.txt",0
+    19 0000000C 7200                        access db "r",0
+    20 0000000E FFFFFFFF                    fileDescriptor dd -1
+    21                                      max equ 100
+    22 00000012 256400                      pFormat db "%d",0
+    23 00000015 256300                      rFormat db "%c",0
+    24 00000018 00<rept>                    content times max+1 db 0
+    25 0000007D 00                          len db 0
+    26 0000007E 2E000000                    stop dd '.'
+    27 00000082 00000000                    character dd 0
+    28                                  ; our code starts here
+    29                                  segment code use32 class=code
+    30                                      start:
+    31                                          
+    32 00000000 68[0C000000]                    push dword access
+    33 00000005 68[04000000]                    push dword fileName 
+    34 0000000A FF15[00000000]                  call [fopen]
+    35 00000010 83C408                          add esp,4*2
+    36                                          
+    37 00000013 83F800                          cmp eax,0
+    38 00000016 7456                            je end_
+    39                                          
+    40 00000018 A3[0E000000]                    mov [fileDescriptor],eax
+    41                                          
+    42 0000001D FF35[0E000000]                  push dword [fileDescriptor]
+    43 00000023 6A64                            push dword 100 
+    44 00000025 6A01                            push dword 1
+    45 00000027 68[18000000]                    push dword content 
+    46 0000002C FF15[00000000]                  call [fread]
+    47 00000032 83C410                          add esp,4*4 
+    48                                          
+    49 00000035 89C1                            mov ecx,eax 
+    50 00000037 BE[18000000]                    mov esi,content 
+    51                                          
+    52                                          loop_: 
+    53 0000003C AC                                  lodsb 
+    54                                              
+    55 0000003D 3C61                                cmp al, 'a'
+    56 0000003F 7410                                je increase 
+    57 00000041 3C65                                cmp al, 'e'
+    58 00000043 740C                                je increase 
+    59 00000045 3C69                                cmp al, 'i'
+    60 00000047 7408                                je increase 
+    61 00000049 3C6F                                cmp al, 'o'
+    62 0000004B 7404                                je increase 
+    63 0000004D 3C75                                cmp al, 'u'
+    64 0000004F EB07                                jmp next
+    65                                              increase: 
+    66 00000051 8005[00000000]01                    add [vowels],byte 1
+    67                                              next:
+    68 00000058 E2E2                                loop loop_
+    69                                              
+    70 0000005A FF35[00000000]                  push dword [vowels] 
+    71 00000060 68[12000000]                    push dword pFormat
+    72 00000065 FF15[00000000]                  call [printf]
+    73 0000006B 83C408                          add esp,4*2
+    74                                          
+    75                                  end_:
+    76 0000006E FF35[0E000000]                  push dword [fileDescriptor]
+    77 00000074 FF15[00000000]                  call [fclose]
+    78 0000007A 83C404                          add esp,4
+    79                                          ; exit(0)
+    80 0000007D 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    81 0000007F FF15[00000000]                  call    [exit]       ; call exit to terminate the program

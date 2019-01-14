@@ -1,0 +1,48 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  ;Read numbers (in base 10) in a loop until the digit '0' is read from the keyboard. Determine and display the smallest number from those that have been read. 
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,scanf,printf               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                  import scanf msvcrt.dll                          ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  import printf msvcrt.dll
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; ...
+    14 00000000 00000000                    number dd 0 
+    15 00000004 45230100                    minim dd 12345h 
+    16 00000008 256400                      format db "%d",0
+    17 0000000B 00000000                    stop dd 0
+    18                                  ; our code starts here
+    19                                  segment code use32 class=code
+    20                                      start:
+    21                                          read: 
+    22 00000000 68[00000000]                        push dword number 
+    23 00000005 68[08000000]                        push dword format 
+    24 0000000A FF15[00000000]                      call [scanf]
+    25 00000010 83C408                              add esp,4*2
+    26                                      
+    27 00000013 A1[00000000]                        mov eax,[number]
+    28 00000018 3B05[0B000000]                      cmp eax,[stop]
+    29 0000001E 740F                                je stop_read
+    30                                              
+    31 00000020 3B05[04000000]                      cmp eax,[minim]
+    32 00000026 7D05                                jge skip_
+    33                                              
+    34 00000028 A3[04000000]                        mov [minim],eax 
+    35                                              
+    36                                              skip_: 
+    37 0000002D EBD1                                jmp read 
+    38                                              
+    39                                          stop_read: 
+    40                                          
+    41 0000002F FF35[04000000]                  push dword [minim]
+    42 00000035 68[08000000]                    push dword format 
+    43 0000003A FF15[00000000]                  call [printf]
+    44 00000040 83C408                          add esp,4*2 
+    45                                          
+    46                                          ; exit(0)
+    47 00000043 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    48 00000045 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

@@ -1,0 +1,67 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  ;A file name and a text (defined in the data segment) are given. The text contains lowercase letters, uppercase letters, digits and special characters. Transform all the lowercase letters from the given text in uppe
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,fopen,fclose,fprintf,fwrite              ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                  import fopen msvcrt.dll                          ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  import fclose msvcrt.dll
+    11                                  import fprintf msvcrt.dll
+    12                                  import fwrite msvcrt.dll
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15                                      ; ...
+    16 00000000 6669732E74787400            fileName db "fis.txt",0
+    17 00000008 61626364                    text db "abcd"
+    18                                      len equ $-text
+    19 0000000C 7700                        access db "w",0
+    20 0000000E FFFFFFFF                    fileDescriptor dd -1
+    21 00000012 00<rept>                    newText times len+1 db 0
+    22                                  ; our code starts here
+    23                                  segment code use32 class=code
+    24                                      start:
+    25                                          ; ...
+    26 00000000 68[0C000000]                    push dword access
+    27 00000005 68[00000000]                    push dword fileName 
+    28 0000000A FF15[00000000]                  call [fopen]
+    29 00000010 83C408                          add esp,4*2 
+    30                                          
+    31 00000013 83F800                          cmp eax,0 
+    32 00000016 7445                            je end_ 
+    33                                          
+    34 00000018 A3[0E000000]                    mov [fileDescriptor],eax
+    35                                          
+    36 0000001D B904000000                      mov ecx,len 
+    37 00000022 BE[08000000]                    mov esi,text 
+    38 00000027 BF[12000000]                    mov edi,newText 
+    39                                          loop_: 
+    40 0000002C AC                                  lodsb 
+    41                                              
+    42 0000002D 3C61                                cmp al,'a' 
+    43 0000002F 7C06                                jl next_ 
+    44                                              
+    45 00000031 3C7A                                cmp al,'z'
+    46 00000033 7F02                                jg next_ 
+    47                                              
+    48 00000035 04E0                                add al,'A'-'a'
+    49                                              next_: 
+    50                                              
+    51 00000037 AA                                  stosb 
+    52                                              
+    53 00000038 E2F2                                loop loop_
+    54                                              
+    55                                              
+    56 0000003A 68[12000000]                    push dword newText 
+    57 0000003F FF35[0E000000]                  push dword [fileDescriptor]
+    58 00000045 FF15[00000000]                  call [fprintf]
+    59 0000004B 83C408                          add esp,4*2 
+    60                                          
+    61 0000004E FF35[0E000000]                  push dword [fileDescriptor]
+    62 00000054 FF15[00000000]                  call [fclose]
+    63 0000005A 83C404                          add esp,4
+    64                                          end_:
+    65                                          ; exit(0)
+    66 0000005D 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    67 0000005F FF15[00000000]                  call    [exit]       ; call exit to terminate the program

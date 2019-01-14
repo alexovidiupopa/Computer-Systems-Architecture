@@ -1,0 +1,84 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,fopen,fread,printf,fclose               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                  import fopen msvcrt.dll
+    10                                  import fread msvcrt.dll
+    11                                  import fclose msvcrt.dll
+    12                                  import printf msvcrt.dll                          ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    13                                  ;A text file is given. Read the content of the file, count the number of letters 'y' and 'z' and display the values on the screen. The file name is defined in the data segment. 
+    14                                  ; our data is declared here (the variables needed by our program)
+    15                                  segment data use32 class=data
+    16 00000000 6669732E74787400            fileName db "fis.txt",0
+    17 00000008 7200                        access db "r",0
+    18                                      max equ 100 
+    19 0000000A 00<rept>                    content times max+1 db 0
+    20 0000006F 00000000                    noY dd 0
+    21 00000073 00000000                    noZ dd 0
+    22 00000077 4E6F206F6620593A25-         pFormat db "No of Y:%d and of Z:%d",0
+    22 00000080 6420616E64206F6620-
+    22 00000089 5A3A256400         
+    23 0000008E FFFFFFFF                    fileDescriptor dd -1
+    24                                  ; our code starts here
+    25                                  segment code use32 class=code
+    26                                      start:
+    27                                          ; ...
+    28 00000000 68[08000000]                    push dword access
+    29 00000005 68[00000000]                    push dword fileName
+    30 0000000A FF15[00000000]                  call [fopen]
+    31 00000010 83C408                          add esp,4*2
+    32                                          
+    33 00000013 83F800                          cmp eax,0 
+    34 00000016 7463                            je end_
+    35                                          
+    36 00000018 A3[8E000000]                    mov [fileDescriptor],eax 
+    37                                          
+    38                                             loop_content: 
+    39 0000001D FF35[8E000000]                          push dword [fileDescriptor]
+    40 00000023 6A64                                    push dword max 
+    41 00000025 6A01                                    push dword 1 
+    42 00000027 68[0A000000]                            push dword content 
+    43 0000002C FF15[00000000]                          call [fread]
+    44 00000032 83C410                                  add esp,4*4 
+    45                                                  
+    46 00000035 83F800                                  cmp eax,0 
+    47 00000038 7427                                    je stop_read
+    48                                                  
+    49 0000003A 89C1                                    mov ecx,eax 
+    50 0000003C BE[0A000000]                            mov esi,content
+    51 00000041 FC                                      cld                 
+    52                                                  read_content: 
+    53 00000042 AC                                          lodsb 
+    54                                                      
+    55 00000043 3C79                                        cmp al,'y'
+    56 00000045 7406                                        je incY 
+    57 00000047 3C7A                                        cmp al,'z'
+    58 00000049 740B                                        je incZ 
+    59                                                      
+    60 0000004B E2F5                                        loop read_content
+    61                                                      incY: 
+    62 0000004D 8005[6F000000]01                                add [noY],byte 1
+    63 00000054 E2EC                                            loop read_content
+    64                                                      incZ: 
+    65 00000056 8005[73000000]01                                add [noZ],byte 1
+    66 0000005D E2E3                                            loop read_content
+    67                                                      
+    68 0000005F EBBC                                    jmp loop_content
+    69                                          stop_read: 
+    70 00000061 FF35[73000000]                  push dword [noZ]
+    71 00000067 FF35[6F000000]                  push dword [noY] 
+    72 0000006D 68[77000000]                    push dword pFormat
+    73 00000072 FF15[00000000]                  call [printf] 
+    74 00000078 83C40C                          add esp,4*3
+    75                                          
+    76                                          ;push dword [fileDescriptor]
+    77                                          ;call [fclose]
+    78                                          ;add esp,4
+    79                                          end_:
+    80                                          ; exit(0)
+    81 0000007B 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    82 0000007D FF15[00000000]                  call    [exit]       ; call exit to terminate the program
